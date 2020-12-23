@@ -3,6 +3,12 @@ using DatingApp.api.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 using DatingApp.api.Dtos;
+///
+using System.Security.Claims;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+// using System.IdentityModel.Tokens;
+using System.Text;
 
 namespace DatingApp.api.Controllers
 {
@@ -11,9 +17,11 @@ namespace DatingApp.api.Controllers
     public class AuthController :ControllerBase
     {
         private readonly IAuthRepository _repo;
+        private readonly IConfiguration _config;
 
-        public AuthController(IAuthRepository repo)
+        public AuthController(IAuthRepository repo, IConfiguration config)
         {
+            _config = config;
             _repo = repo;
         }
 
@@ -58,5 +66,31 @@ namespace DatingApp.api.Controllers
 
         }
 
+        [HttpPost("login")]
+        public async Task<IActionResult> Login(UserForLoginDto userForLoginDto)
+        {
+            var userFromRepo = await _repo.Login(userForLoginDto.Username, userForLoginDto.Password);
+
+            if(userFromRepo == null)
+                return Unauthorized();
+
+            //Claims
+            var claims = new[] 
+            {
+                new Claim(ClaimTypes.NameIdentifier, userFromRepo.Id.ToString()),
+                new Claim(ClaimTypes.Name, userFromRepo.Name)
+            };
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config.GetSection("AppSettings:Token").Value));
+
+            var creds = new SigningCredentials(key,SecurityAlgorithms.HmacSha512Signature);
+
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+
+            }
+
+            // return 
+        }
     }
 }
