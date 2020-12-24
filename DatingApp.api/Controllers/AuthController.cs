@@ -9,6 +9,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 // using System.IdentityModel.Tokens;
 using System.Text;
+using System;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace DatingApp.api.Controllers
 {
@@ -69,7 +71,7 @@ namespace DatingApp.api.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login(UserForLoginDto userForLoginDto)
         {
-            var userFromRepo = await _repo.Login(userForLoginDto.Username, userForLoginDto.Password);
+            var userFromRepo = await _repo.Login(userForLoginDto.Username.ToLower(), userForLoginDto.Password);
 
             if(userFromRepo == null)
                 return Unauthorized();
@@ -87,8 +89,18 @@ namespace DatingApp.api.Controllers
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
+                Subject = new ClaimsIdentity(claims),
+                Expires = DateTime.Now.AddDays(1),
+                SigningCredentials = creds
+            };
 
-            }
+            JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
+
+            SecurityToken token = tokenHandler.CreateToken(tokenDescriptor);
+
+            return Ok(new {
+                token = tokenHandler.WriteToken(token)
+            });
 
             // return 
         }
